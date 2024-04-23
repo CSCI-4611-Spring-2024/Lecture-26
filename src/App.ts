@@ -152,7 +152,8 @@ export class App extends gfx.GfxApp
     // --- Update is called once each frame by the main graphics loop ---
     update(deltaTime: number): void 
     {
-        this.cameraControls.update(deltaTime);
+        if(this.projectionMode != 'Isometric')
+            this.cameraControls.update(deltaTime);
     }
 
 
@@ -175,6 +176,50 @@ export class App extends gfx.GfxApp
                 0, 0, -1, 0
             );
         }
+        else
+        {
+            // http://learnwebgl.brown37.net/08_projections/projections_ortho.html
+
+            const translation = new gfx.Vector3();
+            translation.x = 0;
+            translation.y = 0;
+            translation.z = (this.farClip - this.nearClip) / 2;
+
+            const scale = new gfx.Vector3();
+            scale.x = 2 / this.orthoWidth;
+            scale.y = 2 / this.orthoHeight;
+            scale.z = 2 / (this.farClip - this.nearClip);
+
+            this.camera.projectionMatrix.setRowMajor(
+                1, 0, 0, translation.x,
+                0, 1, 0, translation.y,
+                0, 0, 1, translation.z,
+                0, 0, 0, 1
+            );
+
+            const scaleMatrix = new gfx.Matrix4();
+            scaleMatrix.setRowMajor(
+                scale.x, 0, 0, 0,
+                0, scale.y, 0, 0,
+                0, 0, -scale.z, 0,
+                0, 0, 0, 1
+            );
+
+            this.camera.projectionMatrix.premultiply(scaleMatrix);
+
+            if(this.projectionMode == 'Isometric')
+            {
+                const R = gfx.Matrix4.makeEulerAngles(
+                    gfx.MathUtils.degreesToRadians(-35.264), 
+                    gfx.MathUtils.degreesToRadians(45), 
+                    0
+                );
+
+                const T = gfx.Matrix4.makeTranslation(new gfx.Vector3(0, 0, 550));
+                const M = gfx.Matrix4.multiply(R, T);
+                this.camera.setLocalToParentMatrix(M, false);
+            }
+        }
 
         // Resize the viewport based on the camera aspect ratio
         this.resize();
@@ -184,7 +229,10 @@ export class App extends gfx.GfxApp
     // Override the default resize event handler
     resize(): void
     {
-        this.renderer.resize(window.innerWidth, window.innerHeight, this.aspectRatio);
+        if(this.projectionMode == 'Perspective')
+            this.renderer.resize(window.innerWidth, window.innerHeight, this.aspectRatio);
+        else
+            this.renderer.resize(window.innerWidth, window.innerHeight, this.orthoWidth / this.orthoHeight);
     }
 
 }
