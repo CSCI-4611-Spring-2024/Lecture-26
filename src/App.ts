@@ -86,6 +86,25 @@ export class App extends gfx.GfxApp
         ground.material = groundMaterial;
         this.scene.add(ground);
 
+        const column = gfx.Geometry3Factory.createBox(15, 1, 15);
+        for(let i=-250; i <= 250; i+=20)
+        {
+            for(let j=-250; j <= 250; j+=20)
+            {
+                const columnHeight = Math.random() * 55 + 5;
+                
+                const columnInstance = column.createInstance();
+                columnInstance.position.set(i, columnHeight/2, j);
+                columnInstance.scale.set(1, columnHeight, 1);
+
+                const columnMaterial = new gfx.GouraudMaterial();
+                columnMaterial.setColor(new gfx.Color(Math.random(), Math.random(), Math.random()));
+                columnInstance.material = columnMaterial;
+
+                this.scene.add(columnInstance);
+            }
+        }
+
         this.createGUI();
     }
 
@@ -139,7 +158,33 @@ export class App extends gfx.GfxApp
 
     private setCameraProjection(): void
     {
-        // TO BE IMPLEMENTED
+        if(this.projectionMode == 'Perspective')
+        {
+            const n = this.nearClip;
+            const f = this.farClip;
+
+            const top = n * Math.tan(gfx.MathUtils.degreesToRadians(this.verticalFov)/2);
+            const bottom = -top;
+            const right = top * this.aspectRatio;
+            const left = -right;
+
+            this.camera.projectionMatrix.setRowMajor(
+                (2 * n) / (right-left), 0, (right + left) / (right - left), 0,
+                0, (2 * n) / (top - bottom), (top + bottom) / (top - bottom), 0,
+                0, 0, -(f + n) / (f - n), (-2 * f * n) / (f - n),
+                0, 0, -1, 0
+            );
+        }
+
+        // Resize the viewport based on the camera aspect ratio
+        this.resize();
+    }
+
+
+    // Override the default resize event handler
+    resize(): void
+    {
+        this.renderer.resize(window.innerWidth, window.innerHeight, this.aspectRatio);
     }
 
 }
